@@ -96,12 +96,20 @@ function mapProduct(row: CatalogRow): CatalogProduct {
 export async function getCatalogProducts(): Promise<CatalogProduct[]> {
   if (!process.env.DATABASE_URL) return DEMO_PRODUCTS;
 
-  const rows = await prisma.product.findMany({
-    where: { status: "PUBLISHED" },
-    include: productInclude,
-    orderBy: [{ isFeatured: "desc" }, { name: "asc" }],
-  });
-  return rows.map(mapProduct);
+  try {
+    const rows = await prisma.product.findMany({
+      where: { status: "PUBLISHED" },
+      include: productInclude,
+      orderBy: [{ isFeatured: "desc" }, { name: "asc" }],
+    });
+    return rows.map(mapProduct);
+  } catch (error) {
+    if (process.env.NODE_ENV !== "development") throw error;
+    console.warn(
+      "Catalog database is unavailable; using development sample products.",
+    );
+    return DEMO_PRODUCTS;
+  }
 }
 
 export async function getCatalogProduct(
@@ -111,9 +119,17 @@ export async function getCatalogProduct(
     return DEMO_PRODUCTS.find((product) => product.slug === slug);
   }
 
-  const row = await prisma.product.findUnique({
-    where: { slug, status: "PUBLISHED" },
-    include: productInclude,
-  });
-  return row ? mapProduct(row) : undefined;
+  try {
+    const row = await prisma.product.findUnique({
+      where: { slug, status: "PUBLISHED" },
+      include: productInclude,
+    });
+    return row ? mapProduct(row) : undefined;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "development") throw error;
+    console.warn(
+      "Catalog database is unavailable; using development sample products.",
+    );
+    return DEMO_PRODUCTS.find((product) => product.slug === slug);
+  }
 }

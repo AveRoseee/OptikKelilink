@@ -7,7 +7,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 export const metadata: Metadata = {
-  title: { default: "Kelilink — Katalog Kacamata", template: "%s | Kelilink" },
+  title: {
+    default: "Optik Kelilink — Katalog Kacamata",
+    template: "%s | Kelilink",
+  },
   description:
     "Jelajahi katalog frame kacamata Kelilink. Temukan bentuk dan warna yang cocok untukmu.",
 };

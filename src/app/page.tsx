@@ -1,7 +1,18 @@
-import { CatalogBrowser } from "@/components/catalog-browser";
-import { getCatalogProducts } from "@/lib/catalog";
+import { Suspense } from "react";
+import {
+  FeaturedProducts,
+  FeaturedProductsFallback,
+} from "@/components/featured-products";
+import { LandingPage } from "@/components/landing-page";
 
-export default async function Home() {
-  const products = await getCatalogProducts();
-  return <CatalogBrowser products={products} />;
+export default function Home() {
+  return (
+    <LandingPage
+      featuredProducts={
+        <Suspense fallback={<FeaturedProductsFallback />}>
+          <FeaturedProducts />
+        </Suspense>
+      }
+    />
+  );
 }

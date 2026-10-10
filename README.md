@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kelilink
 
-## Getting Started
+MVP katalog kacamata dengan halaman katalog publik, detail produk 3D, dan dashboard admin untuk mengelola produk. Aplikasi ini tidak menyediakan cart, checkout, payment gateway, ataupun pemrosesan order.
 
-First, run the development server:
+## Menjalankan aplikasi
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Install dependencies: `pnpm install`.
+2. Salin `.env.example` menjadi `.env.local`, lalu isi `DATABASE_URL` dengan Supabase Session pooler dan `DIRECT_URL` dengan Direct connection. Pertahankan `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, dan `ADMIN_EMAIL` dari project Auth yang sama.
+3. Jalankan migrasi database yang sudah ada: `pnpm exec prisma migrate deploy`.
+4. Buat user admin di **Supabase Dashboard → Authentication → Users**. Admin masuk menggunakan email dan password user tersebut.
+5. Isi `ADMIN_EMAIL` di `.env.local` dengan email admin yang diizinkan. Untuk beberapa admin, gunakan `ADMIN_EMAILS` dan pisahkan email dengan koma. Jika keduanya kosong, akses dashboard ditolak.
+6. Jalankan `pnpm dev`, kemudian buka `http://localhost:3000/admin/login`.
+
+Dashboard memakai Supabase Auth dengan session berbasis cookie. `ADMIN_EMAIL` atau `ADMIN_EMAILS` menjadi allowlist admin; session yang valid saja tidak cukup untuk membuka dashboard atau menjalankan aksi CRUD.
+
+## Fitur admin
+
+- Dashboard ringkasan jumlah produk, status publikasi, dan event outbound marketplace.
+- Daftar produk dengan pencarian, detail, edit, dan penghapusan.
+- Form produk untuk nama, slug, brand, deskripsi, kategori, koleksi, harga, gender, dan status publikasi.
+- Satu atau beberapa varian dengan warna, material, jenis lensa, ukuran, ketersediaan, dan URL model GLB.
+- Spesifikasi ukuran, berat, serta garansi.
+- URL outbound Shopee, TikTok Shop, dan Tokopedia.
+
+Kategori dapat dibuat atau diperbarui langsung saat menyimpan produk. Upload foto dan model 3D belum menjadi bagian dari form ini; masukkan URL asset yang dapat diakses publik. Semua operasi CRUD menggunakan database PostgreSQL melalui Prisma.
+
+## Data demo untuk pengujian
+
+Untuk mengisi database pengujian, aktifkan guard seed sementara di PowerShell:
+
+```powershell
+$env:ALLOW_DEMO_SEED = "true"
+pnpm db:seed
+Remove-Item Env:ALLOW_DEMO_SEED
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Seed membuat 10 produk (8 terbit, 1 draft, 1 arsip), 30 varian, spesifikasi, kategori, satu koleksi, tautan marketplace contoh, dan 20 event klik yang tersebar selama 7 hari agar grafik dashboard terisi. URL marketplace memakai `example.com` dan tidak menuju toko sungguhan. Seed aman dijalankan ulang untuk data contoh: event seed lama diganti, bukan ditambahkan berulang. Jalankan hanya pada database pengujian karena seed memperbarui slug demo yang sama.

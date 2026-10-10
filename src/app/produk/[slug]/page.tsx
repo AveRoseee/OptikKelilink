@@ -1,7 +1,8 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Glasses } from "lucide-react";
 import { ProductDetail } from "@/components/product-detail";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { getCatalogProduct, getCatalogProducts } from "@/lib/catalog";
 
 export async function generateStaticParams() {
@@ -9,36 +10,60 @@ export async function generateStaticParams() {
   return products.map((product) => ({ slug: product.slug }));
 }
 
-export default async function ProductPage({
+export default function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  return (
+    <>
+      <SiteHeader />
+      <Suspense fallback={<ProductFallback />}>
+        <ProductContent params={params} />
+      </Suspense>
+      <SiteFooter />
+    </>
+  );
+}
+
+async function ProductContent({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getCatalogProduct(slug);
+  const [product, products] = await Promise.all([
+    getCatalogProduct(slug),
+    getCatalogProducts(),
+  ]);
   if (!product) notFound();
 
   return (
-    <main>
-      <header className="site-header">
-        <Link className="brand" href="/">
-          <span className="brand-mark">
-            <Glasses size={20} />
-          </span>
-          kelilink<span className="brand-dot">.</span>
-        </Link>
-        <Link className="header-link" href="/">
-          Kembali ke katalog
-        </Link>
-      </header>
-      <ProductDetail product={product} />
-      <footer className="footer">
-        <b>
-          kelilink<span className="brand-dot">.</span>
-        </b>
-        <span>Katalog frame pilihan · Jakarta, Indonesia</span>
-        <span>© 2026 Kelilink</span>
-      </footer>
+    <ProductDetail
+      product={product}
+      relatedProducts={products.filter((item) => item.slug !== product.slug)}
+    />
+  );
+}
+
+function ProductFallback() {
+  return (
+    <main
+      className="detail content-width"
+      aria-label="Memuat detail produk"
+      aria-busy="true"
+    >
+      <div className="detail-layout">
+        <div className="detail-skeleton-viewer" />
+        <div className="detail-skeleton-copy">
+          <span />
+          <b />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+      </div>
     </main>
   );
 }

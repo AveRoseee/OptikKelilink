@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowLeft, Glasses, Rotate3D } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { ArrowLeft, ArrowRight, ChevronRight, Rotate3D } from "lucide-react";
 import { EyewearViewer } from "@/components/eyewear-viewer";
+import { FrameIllustration } from "@/components/frame-illustration";
+import { ProductCard } from "@/components/product-card";
 import { trackCatalogEvent } from "@/lib/track-event";
 import type { CatalogProduct, MarketplacePlatform } from "@/types/catalog";
 
@@ -13,7 +14,6 @@ const marketplaceNames: Record<MarketplacePlatform, string> = {
   TIKTOK_SHOP: "TikTok Shop",
   TOKOPEDIA: "Tokopedia",
 };
-
 const clickEvents: Record<
   MarketplacePlatform,
   "click_shopee" | "click_tiktok_shop" | "click_tokopedia"
@@ -50,13 +50,18 @@ function buildOutboundUrl(
   }
 }
 
-export function ProductDetail({ product }: { product: CatalogProduct }) {
+export function ProductDetail({
+  product,
+  relatedProducts,
+}: {
+  product: CatalogProduct;
+  relatedProducts: CatalogProduct[];
+}) {
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
   const activeLinks = [
     ...product.marketplaceLinks,
     ...(selectedVariant?.marketplaceLinks ?? []),
   ].filter((link) => link.isActive && link.url);
-  const qrLink = activeLinks[0];
 
   useEffect(() => {
     trackCatalogEvent({ eventName: "view_product", productSlug: product.slug });
@@ -85,190 +90,205 @@ export function ProductDetail({ product }: { product: CatalogProduct }) {
   }
 
   return (
-    <section className="detail">
-      <p className="crumb">
-        <Link href="/">Katalog</Link> / {product.category.name} / {product.name}
-      </p>
-
-      <div className="detail-layout">
-        <div className="viewer">
-          {selectedVariant?.model3dUrl ? (
-            <EyewearViewer
-              src={selectedVariant.model3dUrl}
-              poster={selectedVariant.model3dPoster}
-              tint={selectedVariant.colorHex}
-              materialOverrides={selectedVariant.materialOverrides}
-              alt={`Model 3D ${product.name}, warna ${selectedVariant.colorName}`}
-              onInteract={() =>
-                trackCatalogEvent({
-                  eventName: "interact_3d",
-                  productSlug: product.slug,
-                  variantColor: selectedVariant.colorName,
-                })
-              }
-            />
-          ) : (
-            <Glasses
-              className="viewer-glasses"
-              size={250}
-              strokeWidth={0.85}
-              color={selectedVariant?.colorHex}
-            />
-          )}
-          <p>
-            <Rotate3D size={13} />
-            {selectedVariant?.model3dUrl
-              ? "Seret untuk memutar · pinch atau scroll untuk zoom"
-              : "Ilustrasi sementara — file model 3D produk belum tersedia"}
-          </p>
-        </div>
-
-        <div className="detail-copy">
-          <p className="eyebrow">
-            {product.category.name} · {selectedVariant?.frameMaterial}
-          </p>
-          <h1>{product.name}</h1>
-          <p className="description">{product.description}</p>
-          <strong className="price">{formatPrice(product.basePrice)}</strong>
-
-          <p className="label">Pilih warna</p>
-          <div className="variants">
-            {product.variants.map((variant) => (
-              <button
-                type="button"
-                key={variant.colorName}
-                aria-pressed={selectedVariant?.colorName === variant.colorName}
-                className={
-                  selectedVariant?.colorName === variant.colorName
-                    ? "variant selected"
-                    : "variant"
-                }
-                onClick={() => selectVariant(variant.colorName)}
-              >
-                <i style={{ backgroundColor: variant.colorHex }} />
-                {variant.colorName}
-              </button>
-            ))}
+    <main>
+      <section className="detail content-width">
+        <p className="crumb">
+          <Link href="/">Beranda</Link>
+          <ChevronRight size={13} />
+          <Link href="/katalog">Katalog</Link>
+          <ChevronRight size={13} />
+          <span>{product.name}</span>
+        </p>
+        <div className="detail-layout">
+          <div className="detail-gallery">
+            <div className="viewer">
+              {selectedVariant?.model3dUrl ? (
+                <EyewearViewer
+                  src={selectedVariant.model3dUrl}
+                  poster={selectedVariant.model3dPoster}
+                  tint={selectedVariant.colorHex}
+                  materialOverrides={selectedVariant.materialOverrides}
+                  alt={`Model 3D ${product.name}, warna ${selectedVariant.colorName}`}
+                  onInteract={() =>
+                    trackCatalogEvent({
+                      eventName: "interact_3d",
+                      productSlug: product.slug,
+                      variantColor: selectedVariant.colorName,
+                    })
+                  }
+                />
+              ) : (
+                <FrameIllustration
+                  category={product.category.slug}
+                  color={selectedVariant?.colorHex}
+                  className="detail-frame"
+                  label={`Ilustrasi ${product.name}`}
+                />
+              )}
+              <span className="viewer-badge">
+                <Rotate3D size={14} /> Tampilan 3D
+              </span>
+              <div className="viewer-help">
+                Seret untuk memutar · scroll untuk zoom
+              </div>
+            </div>
+            <div className="gallery-thumbs" aria-label="Pilihan warna frame">
+              {product.variants.map((variant) => (
+                <button
+                  type="button"
+                  className={
+                    selectedVariant?.colorName === variant.colorName
+                      ? "gallery-thumb selected"
+                      : "gallery-thumb"
+                  }
+                  key={variant.colorName}
+                  aria-label={`Lihat warna ${variant.colorName}`}
+                  aria-pressed={
+                    selectedVariant?.colorName === variant.colorName
+                  }
+                  onClick={() => selectVariant(variant.colorName)}
+                >
+                  <FrameIllustration
+                    category={product.category.slug}
+                    color={variant.colorHex}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p className="label">Pilih toko favoritmu</p>
-          <div className="shops">
-            {(["SHOPEE", "TIKTOK_SHOP", "TOKOPEDIA"] as const).map(
-              (platform) => {
-                const link = activeLinks.find(
-                  (item) => item.platform === platform,
-                );
-                if (!link) {
-                  return (
-                    <span key={platform} className="disabled">
-                      {marketplaceNames[platform]} · segera hadir
-                    </span>
-                  );
-                }
+          <div className="detail-copy">
+            <p className="detail-category">
+              {product.category.name} <span>·</span> {product.brand}
+            </p>
+            <h1>{product.name}</h1>
+            <strong className="price">{formatPrice(product.basePrice)}</strong>
+            <p className="description">{product.description}</p>
 
-                return (
-                  <a
-                    key={platform}
-                    href={buildOutboundUrl(
-                      link.affiliateUrl || link.url,
-                      product.slug,
-                      platform,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackOutbound(platform)}
-                  >
-                    Buka {marketplaceNames[platform]}
-                  </a>
-                );
-              },
-            )}
-          </div>
+            <div className="variant-picker">
+              <p className="label">
+                Warna <span>{selectedVariant?.colorName}</span>
+              </p>
+              <div className="variants">
+                {product.variants.map((variant) => (
+                  <button
+                    type="button"
+                    key={variant.colorName}
+                    className={
+                      selectedVariant?.colorName === variant.colorName
+                        ? "variant-swatch selected"
+                        : "variant-swatch"
+                    }
+                    style={{ "--swatch": variant.colorHex } as CSSProperties}
+                    aria-label={variant.colorName}
+                    title={variant.colorName}
+                    aria-pressed={
+                      selectedVariant?.colorName === variant.colorName
+                    }
+                    onClick={() => selectVariant(variant.colorName)}
+                  />
+                ))}
+              </div>
+            </div>
 
-          {qrLink && (
-            <div className="marketplace-qr">
-              <QRCodeSVG
-                value={buildOutboundUrl(
-                  qrLink.affiliateUrl || qrLink.url,
-                  product.slug,
-                  qrLink.platform,
+            <div className="marketplace-block">
+              <p className="label">Pilih toko</p>
+              <div className="shops">
+                {(["SHOPEE", "TIKTOK_SHOP", "TOKOPEDIA"] as const).map(
+                  (platform) => {
+                    const link = activeLinks.find(
+                      (item) => item.platform === platform,
+                    );
+                    return link ? (
+                      <a
+                        key={platform}
+                        className={`shop-button shop-${platform.toLowerCase()}`}
+                        href={buildOutboundUrl(
+                          link.affiliateUrl || link.url,
+                          product.slug,
+                          platform,
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackOutbound(platform)}
+                      >
+                        Buka {marketplaceNames[platform]}{" "}
+                        <ArrowRight size={14} />
+                      </a>
+                    ) : (
+                      <span
+                        key={platform}
+                        className="shop-button shop-disabled"
+                        aria-disabled="true"
+                      >
+                        {marketplaceNames[platform]} <small>Segera hadir</small>
+                      </span>
+                    );
+                  },
                 )}
-                size={104}
-                level="M"
-              />
-              <p>
-                Pindai untuk membuka {marketplaceNames[qrLink.platform]} di
-                ponsel
+              </div>
+              <p className="marketplace-note">
+                Kamu akan melanjutkan ke marketplace. Harga akhir mengikuti
+                informasi di toko.
               </p>
             </div>
-          )}
 
-          <p className="note">
-            Kamu akan melanjutkan ke marketplace. Harga dan ketersediaan akhir
-            mengikuti informasi di toko.
-          </p>
-
-          <div className="specs">
-            <Spec
-              label="Bahan frame"
-              value={selectedVariant?.frameMaterial ?? "—"}
-            />
-            <Spec
-              label="Jenis lensa"
-              value={selectedVariant?.lensType ?? "—"}
-            />
-            <Spec label="Ukuran" value={selectedVariant?.sizeCode ?? "—"} />
-            <Spec label="Gender" value={product.gender.toLowerCase()} />
-            <Spec
-              label="Lebar lensa"
-              value={
-                product.specification.lensWidthMm
-                  ? `${product.specification.lensWidthMm} mm`
-                  : "—"
-              }
-            />
-            <Spec
-              label="Berat"
-              value={
-                product.specification.weightGrams
-                  ? `${product.specification.weightGrams} g`
-                  : "—"
-              }
-            />
+            <div className="specs">
+              <h2>Detail produk</h2>
+              <Spec
+                label="Bahan frame"
+                value={selectedVariant?.frameMaterial ?? "—"}
+              />
+              <Spec
+                label="Jenis lensa"
+                value={selectedVariant?.lensType ?? "—"}
+              />
+              <Spec
+                label="Ukuran frame"
+                value={selectedVariant?.sizeCode ?? "—"}
+              />
+              <Spec
+                label="Lebar lensa"
+                value={
+                  product.specification.lensWidthMm
+                    ? `${product.specification.lensWidthMm} mm`
+                    : "—"
+                }
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <Link className="crumb back" href="/">
-        <ArrowLeft size={14} /> Kembali melihat katalog
-      </Link>
-
-      <div className="mobile-store-bar">
-        {qrLink ? (
-          <a
-            href={buildOutboundUrl(
-              qrLink.affiliateUrl || qrLink.url,
-              product.slug,
-              qrLink.platform,
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackOutbound(qrLink.platform)}
-          >
-            Buka {marketplaceNames[qrLink.platform]}
-          </a>
-        ) : (
-          <span>Tautan toko segera hadir</span>
+        {relatedProducts.length > 0 && (
+          <section className="related-section">
+            <div className="section-heading">
+              <div>
+                <p className="section-kicker">PILIHAN LAIN</p>
+                <h2>Mungkin kamu suka</h2>
+              </div>
+              <Link className="text-link" href="/katalog">
+                Semua produk <ArrowRight size={15} />
+              </Link>
+            </div>
+            <div className="product-grid related-grid">
+              {relatedProducts.slice(0, 4).map((item) => (
+                <ProductCard key={item.slug} product={item} />
+              ))}
+            </div>
+          </section>
         )}
-      </div>
-    </section>
+        <Link className="back-link" href="/katalog">
+          <ArrowLeft size={15} /> Kembali ke katalog
+        </Link>
+      </section>
+    </main>
   );
 }
 
 function Spec({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <small>{label}</small>
+    <div className="spec-row">
+      <span>{label}</span>
       <b>{value}</b>
     </div>
   );
