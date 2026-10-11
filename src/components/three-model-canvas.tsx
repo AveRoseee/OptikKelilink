@@ -17,11 +17,17 @@ export function ThreeModelCanvas({
   src,
   tint,
   materialOverrides,
+  preserveMaterials = false,
+  minDistance = 1.5,
+  maxDistance = 9,
   onInteract,
 }: {
   src: string;
   tint: string;
   materialOverrides?: MaterialOverrides;
+  preserveMaterials?: boolean;
+  minDistance?: number;
+  maxDistance?: number;
   onInteract?: () => void;
 }) {
   return (
@@ -40,13 +46,14 @@ export function ThreeModelCanvas({
               src={src}
               tint={tint}
               materialOverrides={materialOverrides}
+              preserveMaterials={preserveMaterials}
             />
           </Center>
         </Bounds>
         <OrbitControls
           enablePan={false}
-          minDistance={1.5}
-          maxDistance={9}
+          minDistance={minDistance}
+          maxDistance={maxDistance}
           onStart={onInteract}
         />
       </Suspense>
@@ -58,30 +65,37 @@ function LoadedModel({
   src,
   tint,
   materialOverrides,
+  preserveMaterials,
 }: {
   src: string;
   tint: string;
   materialOverrides?: MaterialOverrides;
+  preserveMaterials: boolean;
 }) {
   const { scene } = useGLTF(src);
   const model = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((object) => {
-      if (object instanceof Mesh) {
-        object.material = Array.isArray(object.material)
-          ? object.material.map((material) => material.clone())
-          : object.material.clone();
-      }
+      // Object3D.traverse() is typed broadly. Check Three.js' runtime mesh
+      // flag, then narrow explicitly so `material` has the correct type.
+      const mesh = object as Mesh;
+      if (!mesh.isMesh) return;
+
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map((material) => material.clone())
+        : mesh.material.clone();
     });
     return clone;
   }, [scene]);
 
   useEffect(() => {
+    if (preserveMaterials) return;
     model.traverse((object) => {
-      if (!(object instanceof Mesh)) return;
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : [object.material];
+      const mesh = object as Mesh;
+      if (!mesh.isMesh) return;
+      const materials: Material[] = Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material];
 
       materials.forEach((material) => {
         const colorMaterial = material as Material & { color?: Color };
@@ -89,7 +103,7 @@ function LoadedModel({
         colorMaterial.color?.set(color);
       });
     });
-  }, [model, tint, materialOverrides]);
+  }, [model, tint, materialOverrides, preserveMaterials]);
 
   return <primitive object={model} />;
 }

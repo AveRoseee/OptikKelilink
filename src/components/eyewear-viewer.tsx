@@ -18,6 +18,9 @@ export function EyewearViewer({
   poster,
   tint,
   materialOverrides,
+  preserveMaterials = false,
+  minDistance,
+  maxDistance,
   alt,
   onInteract,
 }: {
@@ -25,6 +28,9 @@ export function EyewearViewer({
   poster?: string;
   tint: string;
   materialOverrides?: Record<string, { color: string }>;
+  preserveMaterials?: boolean;
+  minDistance?: number;
+  maxDistance?: number;
   alt: string;
   onInteract?: () => void;
 }) {
@@ -39,6 +45,9 @@ export function EyewearViewer({
         src={src}
         tint={tint}
         materialOverrides={materialOverrides}
+        preserveMaterials={preserveMaterials}
+        minDistance={minDistance}
+        maxDistance={maxDistance}
         onInteract={onInteract}
       />
     </div>

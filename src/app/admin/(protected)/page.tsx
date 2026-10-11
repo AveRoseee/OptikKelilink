@@ -9,6 +9,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { requireAdmin } from "@/lib/admin-auth";
+import { getMarketplaceActivityForLastSevenDays } from "@/lib/admin-analytics";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Dashboard Admin | Optik Kelilink" };
@@ -22,45 +23,24 @@ const idr = (value: number) =>
 
 async function DashboardData() {
   await requireAdmin();
-  const [total, published, drafts, clicks, recent, eventCounts] =
-    await Promise.all([
-      prisma.product.count(),
-      prisma.product.count({ where: { status: "PUBLISHED" } }),
-      prisma.product.count({ where: { status: "DRAFT" } }),
-      prisma.analyticsEvent.count({
-        where: {
-          eventName: {
-            in: ["click_shopee", "click_tiktok_shop", "click_tokopedia"],
-          },
+  const [total, published, drafts, clicks, recent, bars] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { status: "PUBLISHED" } }),
+    prisma.product.count({ where: { status: "DRAFT" } }),
+    prisma.analyticsEvent.count({
+      where: {
+        eventName: {
+          in: ["click_shopee", "click_tiktok_shop", "click_tokopedia"],
         },
-      }),
-      prisma.product.findMany({
-        take: 5,
-        orderBy: { updatedAt: "desc" },
-        include: { category: true },
-      }),
-      prisma.analyticsEvent.findMany({
-        where: {
-          eventName: {
-            in: ["click_shopee", "click_tiktok_shop", "click_tokopedia"],
-          },
-          createdAt: { gte: new Date(Date.now() - 7 * 86400000) },
-        },
-        select: { createdAt: true },
-      }),
-    ]);
-  const bars = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date();
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - i));
-    const count = eventCounts.filter(
-      (item) => item.createdAt.toDateString() === day.toDateString(),
-    ).length;
-    return {
-      label: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(day),
-      count,
-    };
-  });
+      },
+    }),
+    prisma.product.findMany({
+      take: 5,
+      orderBy: { updatedAt: "desc" },
+      include: { category: true },
+    }),
+    getMarketplaceActivityForLastSevenDays(),
+  ]);
   const max = Math.max(1, ...bars.map((bar) => bar.count));
   return (
     <>
